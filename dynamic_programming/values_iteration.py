@@ -26,6 +26,16 @@ def mdp_value_iteration(mdp: MDP, max_iter: int = 1000, gamma=1.0) -> np.ndarray
     """
     values = np.zeros(mdp.observation_space.n)
     # BEGIN SOLUTION
+    for _ in range(max_iter):
+        prev_val = values.copy()
+        for state in range(mdp.observation_space.n):
+            state_val = []
+            for action in range(mdp.action_space.n):
+                next_state, reward, _ = mdp.P[state][action]
+                value = reward + gamma * prev_val[next_state]
+                state_val.append(value)
+
+            values[state] = np.max(state_val)
     # END SOLUTION
     return values
 
@@ -42,6 +52,27 @@ def grid_world_value_iteration(
     """
     values = np.zeros((4, 4))
     # BEGIN SOLUTION
+    for _ in range(max_iter):
+        prev_val = values.copy()
+        delta = 0
+        for row in range(env.height):
+            for col in range(env.width):
+                if env.grid[row, col] in  {"P", "N", "W"}:
+                    continue
+                state_val = []
+                for action in range(env.action_space.n):
+                    env.set_state(row, col)
+                    next_state, reward, end, _ = env.step(action, False)
+                    if end:
+                        value = reward
+                    else:
+                        value = reward + gamma * prev_val[next_state[0], next_state[1]]
+                    state_val.append(value)
+                values[row][col] = np.max(state_val)
+        delta = np.max(np.abs(prev_val - values))
+        if delta < theta:
+            break
+    return values
     # END SOLUTION
 
 
@@ -72,3 +103,13 @@ def stochastic_grid_world_value_iteration(
 ) -> np.ndarray:
     values = np.zeros((4, 4))
     # BEGIN SOLUTION
+    delta = float("inf")
+    for _ in range(max_iter):
+        prev_val = values.copy()
+        for row in range(env.height):
+            for col in range(env.width):
+                env.set_state(row, col)
+                delta = value_iteration_per_state(env, values, gamma, prev_val, delta)
+        if delta < theta:
+            break
+    return values
